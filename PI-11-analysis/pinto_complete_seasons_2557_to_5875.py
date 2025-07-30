@@ -17,7 +17,7 @@ def fetch_all_seasons():
     """Fetch all available seasons from the subgraph to auto-detect range"""
     query = """
     query GetAllSeasons {
-        seasons(first: 1000, orderBy: season, orderDirection: desc) {
+        seasons(first: 10000, orderBy: season, orderDirection: desc) {
             season
         }
     }
@@ -48,7 +48,7 @@ def fetch_all_seasons():
 def fetch_season_data(start_season, end_season):
     """Fetch supply data for a range of seasons from the subgraph"""
     all_data = {}
-    batch_size = 1000  # GraphQL query limit
+    batch_size = 10000  # GraphQL query limit
     
     print(f"Fetching seasons {start_season} to {end_season} from Pinto subgraph...")
     
@@ -59,7 +59,7 @@ def fetch_season_data(start_season, end_season):
         query GetSeasonSupplies($gte: Int!, $lte: Int!) {
             seasons(
                 where: { season_gte: $gte, season_lte: $lte }
-                first: 1000
+                first: 10000
                 orderBy: season
                 orderDirection: asc
             ) {
@@ -166,8 +166,8 @@ complete_data = {}
 
 # Sort known seasons and detect gaps
 known_seasons = sorted(known_data.keys())
-first_season = min(known_seasons)
-last_season = max(known_seasons)
+first_season = 2558
+last_season = 5875
 
 print(f"Data range: seasons {first_season} to {last_season}")
 
@@ -205,16 +205,18 @@ for i in range(len(known_seasons) - 1):
 complete_data[known_seasons[-1]] = known_data[known_seasons[-1]]
 
 # Create CSV content
-csv_lines = ["season,supply,supply_formatted,calculated_value,cumulative_sum"]
+csv_lines = ["season,supply_formatted,calculated_value,cumulative_sum"]
 cumulative_sum = 0.0
 
 for season in range(first_season, last_season + 1):
-    supply = complete_data[season]
-    supply_formatted = supply / 1000000  # Convert to millions for readability
-    calculated_value = supply * 416666666666667 / 1e18
+    supply_unformatted = complete_data[season]
+    supply_formatted = supply_unformatted / 1000000  # Convert to millions for readability
+    calculated_value = supply_formatted * 416666666666667 / 1e18
     cumulative_sum += calculated_value
+
+    print(f"Season {season}: {supply_formatted:.6f} {calculated_value:.6f} {cumulative_sum:.6f}")
     
-    csv_lines.append(f"{season},{supply},{supply_formatted:.6f},{calculated_value:.6f},{cumulative_sum:.6f}")
+    csv_lines.append(f"{season},{supply_formatted:.6f},{calculated_value:.6f},{cumulative_sum:.6f}")
 
 # Write to file
 output_filename = f'pinto_complete_seasons_{first_season}_to_{last_season}.csv'
